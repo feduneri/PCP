@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PCP - Panel de consulta y pagos</title>
+
+  <style>
+    :root{
+      --blue:#0A84FF;
+      --blue-2:#1B9BFF;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --card:#ffffff;
+      --line:#e5e7eb;
+      --shadow: 0 18px 40px rgba(0,0,0,.08);
+      --radius: 18px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background:#0b1220;
+    }
+
+    /* Fondo del dashboard (imagen) */
+    .page{
+      min-height:100vh;
+      display:flex;
+      background-image: url("assets/bg-dashboard.jpg"); /* <-- CAMBIAR */
+      background-size: cover;
+      background-position: center;
+      background-repeat:no-repeat;
+    }
+
+    /* Lateral (imagen) */
+    .sidebar{
+      width: 310px;
+      min-width: 280px;
+      background: #fff;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      padding:0;
+    }
+    .sidebar img{
+      width:100%;
+      height:100%;
+      object-fit: cover; /* si querés que no recorte, poné contain */
+      display:block;
+    }
+
+    /* Contenido */
+    .content{
+      flex:1;
+      padding: 40px 44px;
+      display:flex;
+    }
+
+    .panel{
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .title{
+      font-size: 40px;
+      line-height: 1.15;
+      margin: 0 0 8px;
+      font-weight: 650;
+      letter-spacing:-.02em;
+    }
+    .subtitle{
+      margin: 0 0 26px;
+      color: rgba(255,255,255,.9);
+      font-size: 16px;
+    }
+
+    /* El “lienzo” con fondo blanco */
+    .card{
+      background: rgba(255,255,255,.94);
+      border: 1px solid rgba(255,255,255,.55);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Top metrics */
+    .topRow{
+      display:grid;
+      grid-template-columns: 1.6fr .9fr .9fr 1fr;
+      gap: 16px;
+      align-items:stretch;
+      margin-bottom: 18px;
+    }
+
+    .metric{
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+      min-height: 74px;
+    }
+    .metric .label{
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .metric .value{
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing:-.02em;
+      white-space:nowrap;
+    }
+    .metric .value small{
+      font-size: 14px;
+      font-weight: 650;
+      color: var(--muted);
+      margin-right: 6px;
+    }
+
+    .pillStack{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      justify-content:center;
+    }
+    .pill{
+      background:#f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: 10px 14px;
+      color:#374151;
+      font-size: 14px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .pill b{ font-weight:700; letter-spacing:.02em; }
+
+    .btn{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-weight: 650;
+      font-size: 14px;
+      color:#fff;
+      background: linear-gradient(180deg, var(--blue-2), var(--blue));
+      box-shadow: 0 10px 18px rgba(10,132,255,.22);
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn.secondary{
+      background:#fff;
+      color: var(--blue);
+      border: 1px solid rgba(10,132,255,.25);
+      box-shadow:none;
+    }
+
+    .icon-card{
+      width: 18px; height: 18px;
+      display:inline-block;
+      border-radius:4px;
+      background: rgba(255,255,255,.25);
+      position:relative;
+    }
+    .icon-card::before,.icon-card::after{
+      content:"";
+      position:absolute;
+      left:3px; right:3px;
+      height:2px;
+      background: rgba(255,255,255,.8);
+      border-radius:2px;
+    }
+    .icon-card::before{ top:5px; }
+    .icon-card::after{ top:10px; opacity:.7; }
+
+    /* select all */
+    .selectAll{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:#374151;
+      font-size: 14px;
+      padding: 6px 2px 12px;
+    }
+    .checkbox{
+      width:18px; height:18px;
+      border-radius: 5px;
+      border: 1.8px solid #cbd5e1;
+      background:#fff;
+      display:inline-grid;
+      place-items:center;
+    }
+    .checkbox input{
+      width: 18px; height:18px;
+      opacity:0;
+      position:absolute;
+      pointer-events:none;
+    }
+
+    /* Table */
+    .tableWrap{
+      background:#fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow:hidden;
+    }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size: 14px;
+    }
+    thead th{
+      text-align:left;
+      font-weight: 650;
+      color:#374151;
+      background:#f9fafb;
+      padding: 14px 14px;
+      border-bottom: 1px solid var(--line);
+      white-space:nowrap;
+    }
+    tbody td{
+      padding: 14px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      color:#111827;
+      vertical-align:middle;
+      white-space:nowrap;
+    }
+    tbody tr:last-child td{ border-bottom:0; }
+
+    .rowCheck{
+      width: 18px; height:18px;
+      border-radius: 5px;
+      border: 1.8px solid #cbd5e1;
+      background:#fff;
+      display:inline-block;
+    }
+    .rowCheck.active{
+      background: #0A84FF;
+      border-color: #0A84FF;
+      box-shadow: 0 8px 14px rgba(10,132,255,.22);
+    }
+
+    .link{
+      color: var(--blue);
+      text-decoration:none;
+      font-weight: 650;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .eye{
+      width:16px; height:16px;
+      display:inline-block;
+      border: 2px solid rgba(10,132,255,.55);
+      border-radius: 999px;
+      position:relative;
+    }
+    .eye:before{
+      content:"";
+      width:6px; height:6px;
+      background: rgba(10,132,255,.65);
+      border-radius:999px;
+      position:absolute;
+      inset:0;
+      margin:auto;
+    }
+
+    .payBtn{
+      padding: 10px 14px;
+      font-size: 13px;
+      gap:10px;
+    }
+    .payBtn .icon-card{ background: rgba(255,255,255,.22); }
+
+    /* Bottom area */
+    .bottomRow{
+      margin-top: 16px;
+      display:grid;
+      grid-template-columns: 1.25fr .85fr;
+      gap: 16px;
+      align-items:stretch;
+    }
+
+    .infoBox{
+      background:#fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px 18px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      color:#374151;
+    }
+    .infoLine{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      color:#6b7280;
+      font-size: 14px;
+    }
+    .infoLine b{ color:#374151; }
+
+    .lock{
+      width:16px; height:16px;
+      border: 2px solid #16a34a;
+      border-radius:4px;
+      position:relative;
+      margin-top: 2px;
+      flex:0 0 auto;
+    }
+    .lock:before{
+      content:"";
+      position:absolute;
+      width:10px; height:8px;
+      border: 2px solid #16a34a;
+      border-bottom:0;
+      border-radius: 999px 999px 0 0;
+      left:50%;
+      transform: translateX(-50%);
+      top:-8px;
+      background:transparent;
+    }
+
+    .totalBox{
+      background: rgba(10,132,255,.10);
+      border: 1px solid rgba(10,132,255,.18);
+      border-radius: 16px;
+      padding: 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 16px;
+    }
+    .totalBox .meta{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .totalBox .meta .tlabel{
+      font-size: 14px;
+      color:#374151;
+      font-weight: 650;
+    }
+    .totalBox .meta .tvalue{
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing:-.03em;
+    }
+    .totalBox .meta .tvalue small{
+      font-size: 14px;
+      font-weight: 700;
+      color:#6b7280;
+      margin-right: 8px;
+    }
+
+    /* Header inside main card (logo optional) */
+    .brandRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom: 12px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      color:#0f172a;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+    .brand .mark{
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(10,132,255,.20), rgba(10,132,255,.06));
+      border: 1px solid rgba(10,132,255,.25);
+      display:grid;
+      place-items:center;
+      color: var(--blue);
+      font-weight: 900;
+    }
+    .brand small{
+      display:block;
+      font-weight:600;
+      color:#64748b;
+      letter-spacing:0;
+      margin-top:2px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px){
+      .topRow{ grid-template-columns: 1.4fr 1fr 1fr; }
+      .topRow .pillStack{ grid-column: 1 / -1; flex-direction:row; flex-wrap:wrap; }
+    }
+    @media (max-width: 920px){
+      .page{ flex-direction:column; }
+      .sidebar{ width:100%; height: 170px; }
+      .content{ padding: 22px; }
+      .title{ font-size: 30px; }
+      .metric .value{ font-size: 28px; }
+      .bottomRow{ grid-template-columns: 1fr; }
+      .topRow{ grid-template-columns: 1fr; }
+      .pillStack{ flex-direction:column !important; }
+      table{ font-size: 13px; }
+      thead{ display:none; }
+      tbody tr{
+        display:grid;
+        grid-template-columns: 28px 1fr 1fr;
+        gap: 10px;
+        padding: 12px 12px;
+        border-bottom: 1px solid #eef2f7;
+      }
+      tbody td{
+        border:0;
+        padding: 0;
+        white-space:normal;
+      }
+      tbody td:nth-child(1){ grid-row: 1 / span 3; }
+      tbody td:last-child{ grid-column: 2 / -1; margin-top: 8px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <!-- LATERAL: imagen fija (cambiable) -->
+    <aside class="sidebar">
+      <img src="assets/sidebar-illustration.png" alt="Ilustración lateral" />
+    </aside>
+
+    <!-- MAIN -->
+    <main class="content">
+      <div class="panel">
+        <h1 class="title">PCP - Panel de consulta y pagos</h1>
+        <p class="subtitle">Revisá tus facturas y realizá el pago de forma segura.</p>
+
+        <section class="card">
+          <div class="brandRow">
+            <div class="brand">
+              <div class="mark">eF</div>
+              <div>
+                eFactura
+                <small>Powered by RaddTeam</small>
+              </div>
+            </div>
+
+            <!-- Podés poner acciones extra acá -->
+            <button class="btn secondary" type="button">Ayuda</button>
+          </div>
+
+          <!-- TOP METRICS -->
+          <div class="topRow">
+            <div class="metric">
+              <div>
+                <div class="label">Total a pagar</div>
+                <div class="value"><small>UYU</small>29.452</div>
+              </div>
+              <button class="btn" type="button">
+                <span class="icon-card" aria-hidden="true"></span>
+                Pagar todas
+              </button>
+            </div>
+
+            <div class="metric">
+              <div>
+                <div class="label">Facturas pendientes</div>
+                <div class="value">4</div>
+              </div>
+            </div>
+
+            <div class="metric">
+              <div>
+                <div class="label">Próximo vencimiento</div>
+                <div class="value" style="color:#ef4444;font-weight:800;">12/01/2025</div>
+              </div>
+            </div>
+
+            <div class="pillStack">
+              <div class="pill">
+                <span>Proveedor consulta:</span>
+                <b>217589580016</b>
+              </div>
+              <div class="pill">
+                <span>Cliente consulta:</span>
+                <b>140263550015</b>
+              </div>
+            </div>
+          </div>
+
+          <div class="selectAll">
+            <span class="checkbox" aria-hidden="true"></span>
+            <span>Seleccionar todas</span>
+          </div>
+
+          <!-- TABLE -->
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:44px;"></th>
+                  <th>CFE</th>
+                  <th>Vencimiento</th>
+                  <th>Moneda</th>
+                  <th>Importe</th>
+                  <th>A cuenta</th>
+                  <th>Saldo</th>
+                  <th>Ver PDF</th>
+                  <th style="text-align:right;">Pagar factura</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="rowCheck active" title="Seleccionada"></span></td>
+                  <td>44889</td>
+                  <td>2025-12-01</td>
+                  <td>UYU</td>
+                  <td>7.363,00</td>
+                  <td>0,00</td>
+                  <td>7.363,00</td>
+                  <td>
+                    <a class="link" href="#" onclick="return false;">
+                      <span class="eye" aria-hidden="true"></span>
+                      Ver factura
+                    </a>
+                  </td>
+                  <td style="text-align:right;">
+                    <button class="btn payBtn" type="button">
+                      <span class="icon-card" aria-hidden="true"></span>
+                      Pagar ahora
+                    </button>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td><span class="rowCheck"></span></td>
+                  <td>46879</td>
+                  <td>2026-01-05</td>
+                  <td>UYU</td>
+                  <td>7.363,00</td>
+                  <td>0,00</td>
+                  <td>7.363,00</td>
+                  <td>
+                    <a class="link" href="#" onclick="return false;">
+                      <span class="eye" aria-hidden="true"></span>
+                      Ver factura
+                    </a>
+                  </td>
+                  <td style="text-align:right;">
+                    <button class="btn payBtn" type="button">
+                      <span class="icon-card" aria-hidden="true"></span>
+                      Pagar ahora
+                    </button>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td><span class="rowCheck"></span></td>
+                  <td>46879</td>
+                  <td>2026-01-05</td>
+                  <td>UYU</td>
+                  <td>7.363,00</td>
+                  <td>0,00</td>
+                  <td>7.363,00</td>
+                  <td>
+                    <a class="link" href="#" onclick="return false;">
+                      <span class="eye" aria-hidden="true"></span>
+                      Ver factura
+                    </a>
+                  </td>
+                  <td style="text-align:right;">
+                    <button class="btn payBtn" type="button">
+                      <span class="icon-card" aria-hidden="true"></span>
+                      Pagar ahora
+                    </button>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td><span class="rowCheck"></span></td>
+                  <td>46879</td>
+                  <td>2026-01-05</td>
+                  <td>UYU</td>
+                  <td>7.363,00</td>
+                  <td>0,00</td>
+                  <td>7.363,00</td>
+                  <td>
+                    <a class="link" href="#" onclick="return false;">
+                      <span class="eye" aria-hidden="true"></span>
+                      Ver factura
+                    </a>
+                  </td>
+                  <td style="text-align:right;">
+                    <button class="btn payBtn" type="button">
+                      <span class="icon-card" aria-hidden="true"></span>
+                      Pagar ahora
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- BOTTOM -->
+          <div class="bottomRow">
+            <div class="infoBox">
+              <div class="infoLine">
+                <span style="width:18px;display:inline-block;color:#9ca3af;">▦</span>
+                <span><b>Medios de pago:</b> Tarjeta, Transferencia, Red pagos.</span>
+              </div>
+              <div class="infoLine">
+                <span style="width:18px;display:inline-block;color:#9ca3af;">✉</span>
+                <span>Comprobante inmediato por mail.</span>
+              </div>
+              <div class="infoLine" style="color:#16a34a;">
+                <span class="lock" aria-hidden="true"></span>
+                <span><b>Pago seguro.</b> Recibís comprobante por email</span>
+              </div>
+            </div>
+
+            <div class="totalBox">
+              <div class="meta">
+                <div class="tlabel">Total seleccionado:</div>
+                <div class="tvalue"><small>UYU</small>7.363</div>
+              </div>
+              <button class="btn" type="button">
+                <span class="icon-card" aria-hidden="true"></span>
+                Pagar selección
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
